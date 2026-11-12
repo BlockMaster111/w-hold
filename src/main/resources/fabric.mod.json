@@ -1,21 +1,14 @@
 {
   "schemaVersion": 1,
-  "id": "whold",
+  "id": "angle",
   "version": "${version}",
-  "name": "WHold",
-  "description": "Hält die Vorwärts-Taste für eine angegebene Dauer.",
-  "authors": ["WHold"],
-  "contact": {},
-  "license": "MIT",
+  "name": "Angle",
+  "description": "Client-Command /angle <pitch> <yaw> und /angle block|lever <x> <y> <z>: dreht die Kamera menschlich zum Zielwinkel bzw. in die Hitbox eines Blocks/Hebels.",
   "environment": "client",
-  "entrypoints": {
-    "client": [
-      "de.example.whold.WHoldClient"
-    ]
-  },
+  "entrypoints": { "client": [ "dev.angle.AngleClient" ] },
   "depends": {
-    "fabricloader": ">=0.20.1",
-    "minecraft": "26.3",
+    "fabricloader": ">=0.19.5",
+    "minecraft": ">=26.3- <26.4",
     "java": ">=25",
     "fabric-api": "*"
   }
