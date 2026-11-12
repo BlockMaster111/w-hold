@@ -1,11 +1,16 @@
 package de.example.whold;
 
 import com.mojang.brigadier.arguments.DoubleArgumentType;
+import com.mojang.brigadier.builder.LiteralArgumentBuilder;
 import net.fabricmc.api.ClientModInitializer;
 import net.fabricmc.fabric.api.client.command.v2.ClientCommandRegistrationCallback;
+import net.fabricmc.fabric.api.client.command.v2.FabricClientCommandSource;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
 import net.minecraft.client.Minecraft;
 import net.minecraft.network.chat.Component;
+
+import java.util.function.BiConsumer;
+import java.util.function.BiFunction;
 
 import static net.fabricmc.fabric.api.client.command.v2.ClientCommands.argument;
 import static net.fabricmc.fabric.api.client.command.v2.ClientCommands.literal;
@@ -27,74 +32,21 @@ public final class WHoldClient implements ClientModInitializer {
     @Override
     public void onInitializeClient() {
 
-        ClientCommandRegistrationCallback.EVENT.register((dispatcher, registryAccess) -> {
-
-            // /w <laufzeit> <verzoegerung>
+        ClientCommandRegistrationCallback.EVENT.register((dispatcher, registryAccess) ->
+            // /move w|a|sneak <laufzeit> <verzoegerung>
             dispatcher.register(
-                literal("w")
-                    .then(argument("laufzeit", DoubleArgumentType.doubleArg(0.05, 3600.0))
-                        .then(argument("verzoegerung", DoubleArgumentType.doubleArg(0.0, 3600.0))
-                            .executes(context -> {
-                                double duration = DoubleArgumentType.getDouble(context, "laufzeit");
-                                double delay = DoubleArgumentType.getDouble(context, "verzoegerung");
-
-                                startHolding(duration, delay);
-
-                                context.getSource().sendFeedback(
-                                    Component.literal("W startet in " + delay +
-                                        " Sekunden und wird " + duration + " Sekunden gehalten.")
-                                );
-
-                                return 1;
-                            })
-                        )
-                    )
-            );
-
-            // /a <laufzeit> <verzoegerung>
-            dispatcher.register(
-                literal("a")
-                    .then(argument("laufzeit", DoubleArgumentType.doubleArg(0.05, 3600.0))
-                        .then(argument("verzoegerung", DoubleArgumentType.doubleArg(0.0, 3600.0))
-                            .executes(context -> {
-                                double duration = DoubleArgumentType.getDouble(context, "laufzeit");
-                                double delay = DoubleArgumentType.getDouble(context, "verzoegerung");
-
-                                startHoldingLeft(duration, delay);
-
-                                context.getSource().sendFeedback(
-                                    Component.literal("A startet in " + delay +
-                                        " Sekunden und wird " + duration + " Sekunden gehalten.")
-                                );
-
-                                return 1;
-                            })
-                        )
-                    )
-            );
-
-            // /sneak <laufzeit> <verzoegerung>
-            dispatcher.register(
-                literal("sneak")
-                    .then(argument("laufzeit", DoubleArgumentType.doubleArg(0.05, 3600.0))
-                        .then(argument("verzoegerung", DoubleArgumentType.doubleArg(0.0, 3600.0))
-                            .executes(context -> {
-                                double duration = DoubleArgumentType.getDouble(context, "laufzeit");
-                                double delay = DoubleArgumentType.getDouble(context, "verzoegerung");
-
-                                startSneaking(duration, delay);
-
-                                context.getSource().sendFeedback(
-                                    Component.literal("Sneaken startet in " + delay +
-                                        " Sekunden und dauert " + duration + " Sekunden.")
-                                );
-
-                                return 1;
-                            })
-                        )
-                    )
-            );
-        });
+                literal("move")
+                    .then(timed("w", WHoldClient::startHolding,
+                        (duration, delay) -> "W startet in " + delay +
+                            " Sekunden und wird " + duration + " Sekunden gehalten."))
+                    .then(timed("a", WHoldClient::startHoldingLeft,
+                        (duration, delay) -> "A startet in " + delay +
+                            " Sekunden und wird " + duration + " Sekunden gehalten."))
+                    .then(timed("sneak", WHoldClient::startSneaking,
+                        (duration, delay) -> "Sneaken startet in " + delay +
+                            " Sekunden und dauert " + duration + " Sekunden."))
+            )
+        );
 
         ClientTickEvents.END_CLIENT_TICK.register(client -> {
             long now = System.nanoTime();
@@ -152,6 +104,26 @@ public final class WHoldClient implements ClientModInitializer {
                 sneakStartAtNanos = 0L;
             }
         });
+    }
+
+    /** Baut "<name> <laufzeit> <verzoegerung>" (beides Sekunden, Dezimalzahlen erlaubt). */
+    private static LiteralArgumentBuilder<FabricClientCommandSource> timed(
+            String name,
+            BiConsumer<Double, Double> action,
+            BiFunction<Double, Double, String> feedback) {
+        return literal(name)
+            .then(argument("laufzeit", DoubleArgumentType.doubleArg(0.05, 3600.0))
+                .then(argument("verzoegerung", DoubleArgumentType.doubleArg(0.0, 3600.0))
+                    .executes(context -> {
+                        double duration = DoubleArgumentType.getDouble(context, "laufzeit");
+                        double delay = DoubleArgumentType.getDouble(context, "verzoegerung");
+
+                        action.accept(duration, delay);
+                        context.getSource().sendFeedback(Component.literal(feedback.apply(duration, delay)));
+                        return 1;
+                    })
+                )
+            );
     }
 
     private static void startHolding(double seconds, double delay) {
