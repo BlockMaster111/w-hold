@@ -2,15 +2,10 @@
   "schemaVersion": 1,
   "id": "w-hold",
   "version": "${version}",
-  "name": "W Hold + Angle",
-  "description": "/move w|a|d|sneak <laufzeit> <verzoegerung> und /angle (Pitch/Yaw, Block, Hebel).",
+  "name": "W Hold",
+  "description": "/move w|a|d|sneak <laufzeit> <verzoegerung>: haelt eine Taste fuer eine Zeit gedrueckt, optional verzoegert.",
   "environment": "client",
-  "entrypoints": {
-    "client": [
-      "de.example.whold.WHoldClient",
-      "dev.angle.AngleClient"
-    ]
-  },
+  "entrypoints": { "client": [ "de.example.whold.WHoldClient" ] },
   "depends": {
     "fabricloader": ">=0.19.5",
     "minecraft": ">=26.3- <26.4",
