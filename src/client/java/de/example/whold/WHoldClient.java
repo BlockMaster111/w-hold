@@ -49,6 +49,7 @@ public final class WHoldClient implements ClientModInitializer {
             if (client.player == null) {
                 if (holdingForward) {
                     client.options.keyUp.setDown(false);
+                    client.options.keySprint.setDown(false);
                     holdingForward = false;
                 }
                 startAtNanos = 0L;
@@ -57,11 +58,13 @@ public final class WHoldClient implements ClientModInitializer {
 
             if (!holdingForward && startAtNanos > 0L && now >= startAtNanos) {
                 client.options.keyUp.setDown(true);
+                client.options.keySprint.setDown(true);
                 holdingForward = true;
             }
 
             if (holdingForward && now >= releaseAtNanos) {
                 client.options.keyUp.setDown(false);
+                client.options.keySprint.setDown(false);
                 holdingForward = false;
                 startAtNanos = 0L;
             }
@@ -73,6 +76,7 @@ public final class WHoldClient implements ClientModInitializer {
 
         if (holdingForward) {
             client.options.keyUp.setDown(false);
+            client.options.keySprint.setDown(false);
             holdingForward = false;
         }
 
