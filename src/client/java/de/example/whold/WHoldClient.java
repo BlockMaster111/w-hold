@@ -25,6 +25,10 @@ public final class WHoldClient implements ClientModInitializer {
     private static long leftReleaseAtNanos = 0L;
     private static boolean holdingLeft = false;
 
+    private static long rightStartAtNanos = 0L;
+    private static long rightReleaseAtNanos = 0L;
+    private static boolean holdingRight = false;
+
     private static long sneakStartAtNanos = 0L;
     private static long sneakReleaseAtNanos = 0L;
     private static boolean holdingSneak = false;
@@ -33,7 +37,7 @@ public final class WHoldClient implements ClientModInitializer {
     public void onInitializeClient() {
 
         ClientCommandRegistrationCallback.EVENT.register((dispatcher, registryAccess) ->
-            // /move w|a|sneak <laufzeit> <verzoegerung>
+            // /move w|a|d|sneak <laufzeit> <verzoegerung>
             dispatcher.register(
                 literal("move")
                     .then(timed("w", WHoldClient::startHolding,
@@ -41,6 +45,9 @@ public final class WHoldClient implements ClientModInitializer {
                             " Sekunden und wird " + duration + " Sekunden gehalten."))
                     .then(timed("a", WHoldClient::startHoldingLeft,
                         (duration, delay) -> "A startet in " + delay +
+                            " Sekunden und wird " + duration + " Sekunden gehalten."))
+                    .then(timed("d", WHoldClient::startHoldingRight,
+                        (duration, delay) -> "D startet in " + delay +
                             " Sekunden und wird " + duration + " Sekunden gehalten."))
                     .then(timed("sneak", WHoldClient::startSneaking,
                         (duration, delay) -> "Sneaken startet in " + delay +
@@ -55,13 +62,16 @@ public final class WHoldClient implements ClientModInitializer {
                 client.options.keyUp.setDown(false);
                 client.options.keySprint.setDown(false);
                 client.options.keyLeft.setDown(false);
+                client.options.keyRight.setDown(false);
                 client.options.keyShift.setDown(false);
 
                 holdingForward = false;
                 holdingLeft = false;
+                holdingRight = false;
                 holdingSneak = false;
                 startAtNanos = 0L;
                 leftStartAtNanos = 0L;
+                rightStartAtNanos = 0L;
                 sneakStartAtNanos = 0L;
                 return;
             }
@@ -90,6 +100,18 @@ public final class WHoldClient implements ClientModInitializer {
                 client.options.keyLeft.setDown(false);
                 holdingLeft = false;
                 leftStartAtNanos = 0L;
+            }
+
+            // D
+            if (!holdingRight && rightStartAtNanos > 0L && now >= rightStartAtNanos) {
+                client.options.keyRight.setDown(true);
+                holdingRight = true;
+            }
+
+            if (holdingRight && now >= rightReleaseAtNanos) {
+                client.options.keyRight.setDown(false);
+                holdingRight = false;
+                rightStartAtNanos = 0L;
             }
 
             // Sneak
@@ -153,6 +175,20 @@ public final class WHoldClient implements ClientModInitializer {
 
         leftStartAtNanos = now + (long) (delay * 1_000_000_000L);
         leftReleaseAtNanos = leftStartAtNanos + (long) (seconds * 1_000_000_000L);
+    }
+
+    private static void startHoldingRight(double seconds, double delay) {
+        Minecraft client = Minecraft.getInstance();
+
+        if (holdingRight) {
+            client.options.keyRight.setDown(false);
+            holdingRight = false;
+        }
+
+        long now = System.nanoTime();
+
+        rightStartAtNanos = now + (long) (delay * 1_000_000_000L);
+        rightReleaseAtNanos = rightStartAtNanos + (long) (seconds * 1_000_000_000L);
     }
 
     private static void startSneaking(double seconds, double delay) {
